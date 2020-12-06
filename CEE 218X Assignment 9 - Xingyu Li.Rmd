@@ -1,0 +1,94 @@
+---
+title: "CEE 218X Assignment 9"
+runtime: shiny
+output: 
+  flexdashboard::flex_dashboard:
+    vertical_layout: fill
+---
+
+```{r setup, include = F}
+knitr::opts_chunk$set(warning = F, message = F)
+```
+```{r global, include=FALSE}
+library(flexdashboard)
+library(tidyverse)
+library(leaflet)
+library(plotly)
+library(raster)
+smc_race_total <- readRDS("smc_race_total.rds")
+smc_education_race <- readRDS("smc_education_race.rds")
+bay_pums_access <- readRDS("bay_pums_access.rds")
+
+```
+
+Column
+-------------------------------------
+
+Here is a chart showing San Mateo County Education Attainment by Race.
+
+### Education data
+
+```{r}
+
+smc_education_race %>% 
+  group_by(education, race) %>% 
+  summarize(estimate = sum(estimate)) %>% 
+  rbind(smc_race_total) %>% 
+  ggplot() +
+  geom_bar(
+    aes(
+      x = education %>% factor(levels = rev(c("Total",smc_education_race$education[1:8]))),
+      y = estimate,
+      fill = race
+    ),
+    stat = "identity",
+    position = "fill"
+  ) +
+  labs(
+    x = "Education attainment",
+    y = "Proportion of individuals of each race",
+    title = "San Mateo County Education Attainment by Race",
+    fill = "Race of individuals"
+  ) +
+  coord_flip() +
+  theme(
+    legend.position = "bottom",
+    legend.direction = "vertical"
+  )
+```
+
+Column
+-------------------------------------
+Here is a chart showing Bay Area K-12 students who has no access to the internet at home.
+
+```{r}
+pums_pal <- colorNumeric(
+  palette = "Oranges",
+  domain = bay_pums_access$perc_k12_no_access
+)
+
+leaflet() %>%
+  addTiles() %>% 
+  addPolygons(
+    data = bay_pums_access,
+    fillColor = ~pums_pal(perc_k12_no_access),
+    color = "white",
+    opacity = 0.5,
+    fillOpacity = 0.5,
+    weight = 1,
+    label = ~paste0(
+      round(perc_k12_no_access), 
+      "% K-12 students no access to internet"
+    ),
+    highlightOptions = highlightOptions(
+      weight = 2,
+      opacity = 1
+    )
+  ) %>% 
+  addLegend(
+    data = bay_pums_access,
+    pal = pums_pal,
+    values = ~perc_k12_no_access,
+    title = "% K-12 students no access to internet"
+  )
+```
